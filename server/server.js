@@ -12,11 +12,36 @@ const connectDB = require('./config/db');
 const app = express();
 const server = http.createServer(app);
 
-// Configure Socket.IO
+// Allowed CORS origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5000'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Allow servers/mobile/postman requests
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+};
+
+// Configure Socket.IO with restricted CORS
 const io = socketIo(server, {
   cors: {
-    origin: '*', // For development, allow all origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
   }
 });
 
@@ -30,7 +55,7 @@ connectDB().then(() => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes

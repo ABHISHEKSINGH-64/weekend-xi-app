@@ -1,15 +1,19 @@
 import axios from 'axios';
 
 // Resolve the backend API base URL dynamically
-// This ensures that when other residents connect using their phone browsers (e.g. http://192.168.x.x:5173),
-// the requests will resolve to http://192.168.x.x:5000 instead of attempting to query 'localhost' on their device.
+// If a production environment variable is defined, use it.
+// Otherwise, fall back to local IP for mobile accessibility during local development.
 const getAPIUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`;
+  }
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
   return `http://${hostname}:5000/api`;
 };
 
 const api = axios.create({
   baseURL: getAPIUrl(),
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }

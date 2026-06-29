@@ -9,17 +9,16 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Dynamically connect to the backend server based on host
-    const hostname = window.location.hostname;
-    const socketUrl = `http://${hostname}:5000`;
+    // Dynamically connect to the backend server
+    const socketUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000`;
     
-    console.log(`[SOCKET] Connecting to: ${socketUrl}`);
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling']
+    });
 
     setSocket(newSocket);
 
     return () => {
-      console.log('[SOCKET] Disconnecting socket...');
       newSocket.disconnect();
     };
   }, []);
