@@ -63,7 +63,7 @@ exports.playerLogin = async (req, res) => {
     // Generate JWT
     const token = jwt.sign(
       { id: user._id, name: user.name, roomNumber: user.roomNumber, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'default_weekend_xi_jwt_secret_key_999!',
       { expiresIn: '30d' }
     );
 
@@ -116,7 +116,7 @@ exports.adminLogin = async (req, res) => {
     // Generate JWT
     const token = jwt.sign(
       { id: adminUser._id, name: adminUser.name, role: adminUser.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'default_weekend_xi_jwt_secret_key_999!',
       { expiresIn: '30d' }
     );
 

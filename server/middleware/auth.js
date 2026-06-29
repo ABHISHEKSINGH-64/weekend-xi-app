@@ -8,7 +8,7 @@ const verifyToken = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_weekend_xi_jwt_secret_key_999!');
     req.user = decoded;
     next();
   } catch (error) {
