@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema({
   roomNumber: {
     type: String,
     required: [true, 'Room number is required'],
-    unique: true,
     trim: true
   },
   role: {

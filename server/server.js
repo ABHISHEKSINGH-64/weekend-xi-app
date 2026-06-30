@@ -76,9 +76,9 @@ app.get('/api/status', (req, res) => {
 const seedAdmin = async () => {
   try {
     const User = require('./models/user');
+    const adminName = (process.env.ADMIN_NAME || 'Abhishek Singh').trim();
     const adminExists = await User.findOne({ role: 'admin' });
     if (!adminExists) {
-      const adminName = process.env.ADMIN_NAME || 'Admin';
       const admin = new User({
         name: adminName,
         roomNumber: '000',
@@ -87,7 +87,13 @@ const seedAdmin = async () => {
       await admin.save();
       console.log(`[SEED] Admin user '${adminName}' successfully initialized.`);
     } else {
-      console.log('[SEED] Admin user already exists. Skipping initialization.');
+      if (adminExists.name !== adminName) {
+        adminExists.name = adminName;
+        await adminExists.save();
+        console.log(`[SEED] Admin user name updated to '${adminName}'.`);
+      } else {
+        console.log('[SEED] Admin user already exists. Skipping initialization.');
+      }
     }
   } catch (error) {
     console.error('[SEED] Error seeding admin user:', error);

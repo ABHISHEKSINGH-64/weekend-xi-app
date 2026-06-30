@@ -25,27 +25,32 @@ exports.playerLogin = async (req, res) => {
       return res.status(400).json({ message: 'Invalid Access Code' });
     }
 
-    // Check if room number already exists
-    let user = await User.findOne({ roomNumber: roomNumber.trim() });
+    // Check if player already exists in this room with this name (case-insensitive)
+    const cleanName = name.trim();
+    const cleanRoom = roomNumber.trim();
+    
+    let user = await User.findOne({
+      roomNumber: cleanRoom,
+      name: { $regex: new RegExp("^" + cleanName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") }
+    });
 
     if (user) {
-      // Room number exists. Check if name matches.
-      // We check case-insensitive match for name to be user-friendly, but keep it strict enough
-      if (user.name.toLowerCase() !== name.trim().toLowerCase()) {
-        return res.status(400).json({
-          message: `Room number ${roomNumber} is already registered to a different player.`
-        });
-      }
-      
-      // Update name spelling in DB if case matches but character cases differ (optional, let's keep it as is)
       if (user.role === 'admin') {
         return res.status(400).json({ message: 'Admin cannot login via player portal.' });
       }
     } else {
-      // Room number does not exist, create new player
+      // Check how many players are already registered in this room
+      const playersInRoomCount = await User.countDocuments({ roomNumber: cleanRoom, role: 'player' });
+      if (playersInRoomCount >= 3) {
+        return res.status(400).json({
+          message: `Room number ${cleanRoom} already has the maximum of 3 registered players.`
+        });
+      }
+
+      // Room number is not full, create new player
       user = new User({
-        name: name.trim(),
-        roomNumber: roomNumber.trim(),
+        name: cleanName,
+        roomNumber: cleanRoom,
         role: 'player'
       });
       await user.save();
@@ -93,8 +98,8 @@ exports.adminLogin = async (req, res) => {
       return res.status(400).json({ message: 'Admin name and access code are required' });
     }
 
-    const envAdminName = (process.env.ADMIN_NAME || 'Abhishek singh').trim();
-    const envAdminCode = (process.env.ADMIN_ACCESS_CODE || 'Abhishek@64').trim();
+    const envAdminName = (process.env.ADMIN_NAME || 'Abhishek Singh').trim();
+    const envAdminCode = (process.env.ADMIN_ACCESS_CODE || 'ABHI501').trim();
 
     // Validate credentials against environment variables (case-insensitive name, case-sensitive password)
     if (name.trim().toLowerCase() !== envAdminName.toLowerCase() || accessCode.trim() !== envAdminCode) {
