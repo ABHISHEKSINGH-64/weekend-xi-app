@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { generateAccessCode } from '../utils/accessCode';
 import { motion } from 'framer-motion';
 import { IoPersonOutline, IoHomeOutline, IoKeyOutline, IoPlayCircleOutline } from 'react-icons/io5';
 
@@ -12,7 +11,6 @@ const Login = () => {
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
-  const [roomNumber, setRoomNumber] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,8 +26,6 @@ const Login = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const liveCode = generateAccessCode(name, roomNumber);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -38,12 +34,24 @@ const Login = () => {
       setError('Name is required');
       return;
     }
-    if (!roomNumber.trim()) {
-      setError('Room Number is required');
-      return;
-    }
     if (!accessCode.trim()) {
       setError('Access Code is required');
+      return;
+    }
+
+    // Extract room number from access code
+    const cleanName = name.replace(/[^a-zA-Z]/g, '');
+    const prefix = cleanName.substring(0, 4).toUpperCase();
+    const upperAccessCode = accessCode.trim().toUpperCase();
+
+    if (!upperAccessCode.startsWith(prefix)) {
+      setError(`Access code must start with '${prefix}' (first 4 letters of your name)`);
+      return;
+    }
+
+    const roomNumber = upperAccessCode.substring(prefix.length);
+    if (!roomNumber) {
+      setError(`Access code must end with your room number (e.g. ${prefix}501)`);
       return;
     }
 
@@ -105,28 +113,13 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Room Number Field */}
-          <div className="space-y-1.5">
-            <label className="text-slate-300 text-xs font-semibold uppercase tracking-wider block">Room Number</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="e.g. 501"
-                value={roomNumber}
-                onChange={(e) => setRoomNumber(e.target.value)}
-                className="glass-input"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
           {/* Access Code Field */}
           <div className="space-y-1.5 relative">
             <label className="text-slate-300 text-xs font-semibold uppercase tracking-wider block">Access Code</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="FIRST 4 LETTERS OF FIRST NAME + ROOM"
+                placeholder="FIRST 4 LETTERS OF NAME + ROOM"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
                 className="glass-input uppercase"
@@ -135,15 +128,15 @@ const Login = () => {
             </div>
 
             {/* Generated Code Helper */}
-            {name.trim() && roomNumber.trim() && (
+            {name.trim() && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-2 text-xs flex justify-between items-center text-slate-400 bg-slate-800/40 border border-slate-700/30 rounded-xl px-3 py-2 font-medium"
               >
-                <span>Example Access Code:</span>
+                <span>Example code for room "501":</span>
                 <span className="font-mono font-bold text-green-400 tracking-wider bg-green-500/10 px-2 py-0.5 rounded border border-green-500/15">
-                  {liveCode}
+                  {name.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase()}501
                 </span>
               </motion.div>
             )}
