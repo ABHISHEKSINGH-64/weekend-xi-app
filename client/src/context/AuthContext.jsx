@@ -6,16 +6,39 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Synchronously initialize user state from localStorage to prevent flash of login screen and redirects
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+    const roomNumber = localStorage.getItem('roomNumber');
+    const role = localStorage.getItem('role');
+    const id = localStorage.getItem('userId');
+    if (token && name && role) {
+      return { id, name, roomNumber, role };
+    }
+    return null;
+  });
 
-  // Load user from localStorage token on initial load
+  const [loading, setLoading] = useState(() => {
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+    const role = localStorage.getItem('role');
+    return !(token && name && role);
+  });
+
+  // Verify and update user from localStorage token on initial load
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
           const profile = await authService.getMe();
+          // Update profile in localStorage and state to keep it in sync
+          localStorage.setItem('name', profile.name);
+          localStorage.setItem('roomNumber', profile.roomNumber);
+          localStorage.setItem('role', profile.role);
+          localStorage.setItem('userId', profile.id);
+          
           setUser({
             id: profile.id,
             name: profile.name,
@@ -24,12 +47,16 @@ export const AuthProvider = ({ children }) => {
           });
         } catch (error) {
           console.error('[AUTH] Failed to fetch current user profile:', error);
-          // Token might be expired or invalid, clear localStorage
-          localStorage.removeItem('token');
-          localStorage.removeItem('name');
-          localStorage.removeItem('roomNumber');
-          localStorage.removeItem('role');
-          localStorage.removeItem('userId');
+          // Token might be expired or invalid, clear localStorage ONLY if server responds with 401/403.
+          // Network errors or temporary server down should not log the user out.
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('name');
+            localStorage.removeItem('roomNumber');
+            localStorage.removeItem('role');
+            localStorage.removeItem('userId');
+            setUser(null);
+          }
         }
       }
       setLoading(false);
